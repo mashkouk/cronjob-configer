@@ -16,8 +16,8 @@ fi
 read -p "لطفاً مسیر کامل اسکریپت خود را وارد کنید (یا اینتر بزنید تا خالی بماند): " SCRIPT_PATH
 
 # اگر کاربر مسیر را وارد کند، بررسی می‌کنیم که فایل وجود دارد یا خیر
-if [ ! -z "$SCRIPT_PATH" ];then
-    if [ ! -f "$SCRIPT_PATH" ];then
+if [ ! -z "$SCRIPT_PATH" ]; then
+    if [ ! -f "$SCRIPT_PATH" ]; then
         echo "خطا: فایل اسکریپت در مسیر مشخص شده وجود ندارد."
         exit 1
     fi
@@ -25,6 +25,16 @@ fi
 
 # دریافت نام سرویس‌هایی که باید ریستارت شوند از کاربر (می‌تواند خالی باشد)
 read -p "آیا می‌خواهید سرویس خاصی ری‌استارت شود؟ (نام سرویس را وارد کنید یا خالی بگذارید): " SERVICES
+
+# چک کردن وجود سرویس
+if [ ! -z "$SERVICES" ]; then
+    for service in $SERVICES; do
+        if ! systemctl list-units --type=service --state=running | grep -q "$service.service"; then
+            echo "خطا: سرویس '$service' وجود ندارد یا در حال حاضر در حال اجرا نیست."
+            exit 1
+        fi
+    done
+fi
 
 # توضیح زمان‌بندی کرون جاب به صورت جزئی
 echo ""
