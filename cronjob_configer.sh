@@ -1,36 +1,71 @@
 #!/bin/bash
 
-# بررسی نصب بودن cron و نصب آن در صورت عدم وجود
+# بررسی نصب بودن cron
 if ! dpkg -l | grep -q cron; then
-    echo "Cron نصب نشده است. نصب Cron..."
+    echo "Cron نصب نیست. در حال نصب cron ..."
     sudo apt update
-    sudo apt install -y cron
+    sudo apt install cron -y
     sudo systemctl enable cron
     sudo systemctl start cron
-    echo "Cron نصب و فعال شد."
+    echo "Cron با موفقیت نصب شد."
 else
-    echo "Cron از قبل نصب است."
+    echo "Cron از قبل نصب شده است."
 fi
 
-# درخواست زمان‌بندی کرون جاب
-echo "لطفاً زمان‌بندی کرون جاب را وارد کنید:"
-echo "توجه: اگر بخواهید از علامت * استفاده کنید، به معنی «هر مقدار» است."
-echo "برای مثال، * در بخش دقیقه یعنی «هر دقیقه»، یا * در بخش ساعت یعنی «هر ساعت»."
+# دریافت مسیر اسکریپت از کاربر (اگر خالی باشد، نادیده گرفته می‌شود)
+read -p "لطفاً مسیر کامل اسکریپت خود را وارد کنید (یا اینتر بزنید تا خالی بماند): " SCRIPT_PATH
 
-read -p "دقیقه (0-59، * برای هر دقیقه): " minute
-read -p "ساعت (0-23، * برای هر ساعت): " hour
-read -p "روز ماه (1-31، * برای هر روز): " day
-read -p "ماه (1-12، * برای هر ماه): " month
-read -p "روز هفته (0-7، 0=یکشنبه، * برای هر روز هفته): " weekday
+# اگر کاربر مسیر را وارد کند، بررسی می‌کنیم که فایل وجود دارد یا خیر
+if [ ! -z "$SCRIPT_PATH" ]; then
+    if [ ! -f "$SCRIPT_PATH" ]; then
+        echo "خطا: فایل اسکریپت در مسیر مشخص شده وجود ندارد."
+        exit 1
+    fi
+fi
 
-# درخواست مسیر فایل اجرایی
-read -p "مسیر فایل اجرایی را وارد کنید (به طور کامل): " filepath
+# دریافت نام سرویس‌هایی که باید ریستارت شوند از کاربر (می‌تواند خالی باشد)
+read -p "آیا می‌خواهید سرویس خاصی ری‌استارت شود؟ (نام سرویس را وارد کنید یا خالی بگذارید): " SERVICES
 
-# ساخت کرون جاب
-cronjob="$minute $hour $day $month $weekday $filepath"
+# توضیح زمان‌بندی کرون جاب به صورت جزئی
+echo ""
+echo "فرمت زمان‌بندی کرون شامل 5 بخش است: دقیقه، ساعت، روز ماه، ماه، روز هفته."
+echo "در هر بخش می‌توانید از * (ستاره) استفاده کنید:"
+echo "  - ستاره (*) به معنی هر مقدار ممکن است. مثلاً در بخش ساعت * به معنی هر ساعتی است."
+echo ""
 
-# افزودن کرون جاب به crontab
-(crontab -l ; echo "$cronjob") | crontab -
+# دریافت زمان‌بندی از کاربر به‌صورت جداگانه
+read -p "دقیقه (0-59 یا * برای هر دقیقه): " MINUTE
+read -p "ساعت (0-23 یا * برای هر ساعت): " HOUR
+read -p "روز ماه (1-31 یا * برای هر روز): " DAY_OF_MONTH
+read -p "ماه (1-12 یا * برای هر ماه): " MONTH
+read -p "روز هفته (0-7، 0 و 7 هر دو یکشنبه هستند، یا * برای هر روز هفته): " DAY_OF_WEEK
 
-echo "کرون جاب با موفقیت اضافه شد:"
-echo "$cronjob"
+# ترکیب کردن زمان‌بندی وارد شده توسط کاربر
+CRON_SCHEDULE="$MINUTE $HOUR $DAY_OF_MONTH $MONTH $DAY_OF_WEEK"
+
+# نمایش فرمت نهایی به کاربر
+echo "زمان‌بندی شما: $CRON_SCHEDULE"
+
+# ساختن یک اسکریپت موقت برای کرون جاب
+TEMP_SCRIPT="/tmp/temp_cron_script.sh"
+echo "#!/bin/bash" > $TEMP_SCRIPT
+
+# اگر کاربر مسیر اسکریپت وارد کرده باشد، آن را به اسکریپت اضافه می‌کنیم
+if [ ! -z "$SCRIPT_PATH" ]; then
+    echo "bash $SCRIPT_PATH" >> $TEMP_SCRIPT
+fi
+
+# اگر سرویسی برای ری‌استارت مشخص شده باشد، آن را به اسکریپت اضافه می‌کنیم
+if [ ! -z "$SERVICES" ]; then
+    for service in $SERVICES; do
+        echo "sudo systemctl restart $service" >> $TEMP_SCRIPT
+    done
+fi
+
+# اسکریپت موقت را قابل اجرا می‌کنیم
+chmod +x $TEMP_SCRIPT
+
+# اضافه کردن کرون جاب به crontab که اسکریپت موقت را اجرا می‌کند
+(crontab -l 2>/dev/null; echo "$CRON_SCHEDULE bash $TEMP_SCRIPT") | crontab -
+
+echo "کرون جاب با موفقیت اضافه شد."
