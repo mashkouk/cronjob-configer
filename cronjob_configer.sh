@@ -99,4 +99,7 @@ chmod +x $TEMP_SCRIPT
 # اضافه کردن کرون جاب به crontab که اسکریپت موقت را اجرا می‌کند
 (crontab -l 2>/dev/null; echo "$CRON_SCHEDULE bash $TEMP_SCRIPT") | crontab -
 
+# نمایش پیام موفقیت و مسیر فایل کرون‌جاب
 echo "کرون جاب با موفقیت اضافه شد."
+echo "فایل کرون‌جاب شما در مسیر زیر ایجاد شده است:"
+echo "$TEMP_SCRIPT"
