@@ -16,8 +16,8 @@ fi
 read -p "لطفاً مسیر کامل اسکریپت خود را وارد کنید (یا اینتر بزنید تا خالی بماند): " SCRIPT_PATH
 
 # اگر کاربر مسیر را وارد کند، بررسی می‌کنیم که فایل وجود دارد یا خیر
-if [ ! -z "$SCRIPT_PATH" ]; then
-    if [ ! -f "$SCRIPT_PATH" ]; then
+if [ ! -z "$SCRIPT_PATH" ];then
+    if [ ! -f "$SCRIPT_PATH" ];then
         echo "خطا: فایل اسکریپت در مسیر مشخص شده وجود ندارد."
         exit 1
     fi
@@ -45,6 +45,27 @@ CRON_SCHEDULE="$MINUTE $HOUR $DAY_OF_MONTH $MONTH $DAY_OF_WEEK"
 
 # نمایش فرمت نهایی به کاربر
 echo "زمان‌بندی شما: $CRON_SCHEDULE"
+
+# توضیح فارسی زمان‌بندی وارد شده
+echo "توضیح زمان‌بندی به صورت فارسی:"
+
+# تعیین زمان اجرا بر اساس مقادیر وارد شده
+[ "$MINUTE" == "*" ] && MINUTE="هر دقیقه" || MINUTE="دقیقه $MINUTE"
+[ "$HOUR" == "*" ] && HOUR="هر ساعت" || HOUR="ساعت $HOUR"
+[ "$DAY_OF_MONTH" == "*" ] && DAY_OF_MONTH="هر روز" || DAY_OF_MONTH="روز $DAY_OF_MONTH"
+[ "$MONTH" == "*" ] && MONTH="هر ماه" || MONTH="ماه $MONTH"
+[ "$DAY_OF_WEEK" == "*" ] && DAY_OF_WEEK="هر روز هفته" || case $DAY_OF_WEEK in
+    0|7) DAY_OF_WEEK="یکشنبه" ;;
+    1) DAY_OF_WEEK="دوشنبه" ;;
+    2) DAY_OF_WEEK="سه‌شنبه" ;;
+    3) DAY_OF_WEEK="چهارشنبه" ;;
+    4) DAY_OF_WEEK="پنج‌شنبه" ;;
+    5) DAY_OF_WEEK="جمعه" ;;
+    6) DAY_OF_WEEK="شنبه" ;;
+esac
+
+# نمایش زمان‌بندی به فارسی
+echo "اسکریپت یا سرویس شما در $MINUTE از $HOUR، در $DAY_OF_MONTH از $MONTH و $DAY_OF_WEEK اجرا خواهد شد."
 
 # ساختن یک اسکریپت موقت برای کرون جاب
 TEMP_SCRIPT="/tmp/temp_cron_script.sh"
